@@ -35,6 +35,9 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoanR0b29teG5qZXFic2d5bHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MzIwMjgsImV4cCI6MjA2ODQwODAyOH0.8302FJ4esEd2Z3_vM66hhx4gSSgd47Ej-3yVH3Fifig";
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const list = document.getElementById("request-list");
+
+    const seenIds = new Set();
 
     async function fetchRequests() {
       const { data, error } = await client
@@ -47,29 +50,33 @@
         return;
       }
 
-      const list = document.getElementById("request-list");
       list.innerHTML = "";
+      data.forEach(addRequestToList);
+    }
 
-      data.forEach((item) => {
-        const li = document.createElement("li");
-        li.textContent = `${item.song} — ${item.status}`;
-        list.appendChild(li);
-      });
+    function addRequestToList(item) {
+      if (seenIds.has(item.id)) return;
+
+      seenIds.add(item.id);
+      const li = document.createElement("li");
+      li.textContent = `${item.song} — ${item.status}`;
+      li.id = `req-${item.id}`;
+      list.appendChild(li);
     }
 
     // Első betöltéskor
     fetchRequests();
 
-    // Valós idejű frissítés csak INSERT eseményekre
+    // Realtime: csak az új kérés jön
     client
-      .channel('requests-updates')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'requests'
+      .channel("realtime:public:requests")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "requests",
       }, (payload) => {
-        console.log("Új kérés érkezett:", payload);
-        fetchRequests();
+        console.log("Új kérés:", payload.new);
+        addRequestToList(payload.new);
       })
       .subscribe();
   </script>
