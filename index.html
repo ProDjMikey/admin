@@ -22,11 +22,6 @@
     li {
       padding: 10px;
       border-bottom: 1px solid #FFD700;
-      cursor: pointer;
-    }
-    li.played {
-      text-decoration: line-through;
-      opacity: 0.5;
     }
   </style>
 </head>
@@ -37,11 +32,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://dhjttoomxnjeqbsgyltf.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // Vágd vissza a saját kulcsod
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoanR0b29teG5qZXFic2d5bHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MzIwMjgsImV4cCI6MjA2ODQwODAyOH0.8302FJ4esEd2Z3_vM66hhx4gSSgd47Ej-3yVH3Fifig";
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const list = document.getElementById("request-list");
-    let playedSongs = new Set();
+
+    const seenIds = new Set();
 
     async function fetchRequests() {
       const { data, error } = await client
@@ -54,44 +50,34 @@
         return;
       }
 
-      const grouped = {};
-      data.forEach((item) => {
-        const key = item.song.trim().toLowerCase();
-        if (!grouped[key]) {
-          grouped[key] = { song: item.song, count: 0 };
-        }
-        grouped[key].count += 1;
-      });
-
-      const list = document.getElementById("request-list");
       list.innerHTML = "";
-
-      Object.values(grouped).forEach((item) => {
-        const li = document.createElement("li");
-        li.textContent = `🎵 ${item.song} (x${item.count})`;
-        if (playedSongs.has(item.song)) {
-          li.classList.add("played");
-          li.textContent += " ✅";
-        }
-
-        li.addEventListener("click", () => {
-          if (playedSongs.has(item.song)) {
-            playedSongs.delete(item.song);
-          } else {
-            playedSongs.add(item.song);
-          }
-          fetchRequests();
-        });
-
-        list.appendChild(li);
-      });
+      data.forEach(addRequestToList);
     }
 
+    function addRequestToList(item) {
+      if (seenIds.has(item.id)) return;
+
+      seenIds.add(item.id);
+      const li = document.createElement("li");
+      li.textContent = `${item.song} — ${item.status}`;
+      li.id = `req-${item.id}`;
+      list.appendChild(li);
+    }
+
+    // Első betöltéskor
     fetchRequests();
 
+    // Realtime: csak az új kérés jön
     client
       .channel("realtime:public:requests")
-      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, fetchRequests)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "requests",
+      }, (payload) => {
+        console.log("Új kérés:", payload.new);
+        addRequestToList(payload.new);
+      })
       .subscribe();
   </script>
 </body>
