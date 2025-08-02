@@ -37,8 +37,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://dhjttoomxnjeqbsgyltf.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // Vágd vissza a saját kulcsod
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let playedSongs = new Set();
 
