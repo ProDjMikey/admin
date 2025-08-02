@@ -25,9 +25,9 @@
 
     async function fetchRequests() {
       const { data, error } = await supabase
-        .from("dalkeres")
+        .from("requests")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("timestamp", { ascending: false });
 
       if (error) {
         console.error("Hiba a lekérés során:", error);
@@ -38,7 +38,7 @@
       list.innerHTML = "";
       data.forEach((item) => {
         const li = document.createElement("li");
-        li.textContent = item.szoveg;
+        li.textContent = item.song;
         list.appendChild(li);
       });
     }
@@ -46,8 +46,8 @@
     fetchRequests();
 
     supabase
-      .channel("dalkeresek")
-      .on("postgres_changes", { event: "*", schema: "public", table: "dalkeres" }, fetchRequests)
+      .channel("requests")
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, fetchRequests)
       .subscribe();
   </script>
 </body>
